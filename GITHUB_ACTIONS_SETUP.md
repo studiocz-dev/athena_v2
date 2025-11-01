@@ -61,7 +61,7 @@ Once secrets are configured:
    - ✅ Detects push to `main` branch
    - ✅ Checks out your code
    - ✅ Connects to bot-hosting.net via SFTP
-   - ✅ Uploads all files to `/bot` directory
+   - ✅ Uploads all files to `/home/container` directory
    - ✅ Completes in ~30-60 seconds
 
 3. **Check deployment status**:
@@ -121,6 +121,7 @@ git push origin main
 
 # 5. SSH to server and restart bot
 ssh 1030846920597454929.d0046ffd@de1.bot-hosting.net -p 2022
+cd /home/container
 screen -r athena_bot  # Ctrl+C to stop
 python3 auto_trader.py  # Restart with new code
 ```
@@ -180,7 +181,7 @@ python3 auto_trader.py  # Restart with new code
 3. **Verify on server**:
    ```bash
    ssh 1030846920597454929.d0046ffd@de1.bot-hosting.net -p 2022
-   cd /bot
+   cd /home/container
    ls -la  # Check if README.md updated
    ```
 
@@ -198,7 +199,7 @@ python3 auto_trader.py  # Restart with new code
 - Check for typos when adding secrets
 
 **Error: "Permission denied"**
-- Check remote_path `/bot` exists
+- Check remote_path `/home/container` exists
 - Verify user has write permissions
 
 ### View Detailed Logs
@@ -238,7 +239,7 @@ local_path: './src/*'  # Only src folder
 
 Edit `.github/workflows/deploy.yml`:
 ```yaml
-remote_path: '/home/bot/athena'  # Different server path
+remote_path: '/home/container'  # Current bot-hosting.net path
 ```
 
 ### Add Slack/Discord Notifications

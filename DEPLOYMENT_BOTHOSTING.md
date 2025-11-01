@@ -2,7 +2,11 @@
 
 ## 📋 Overview
 
-This guide covers deploying your Athena v2 automated trading bot to bot-hosting.net for 24/7 operation.
+This guide covers### Step 2: Navigate to Container Directory
+
+```bash
+cd /home/container
+```oying your Athena v2 automated trading bot to bot-hosting.net for 24/7 operation.
 
 ## 🔐 Server Details
 
@@ -39,24 +43,20 @@ The script will:
    - Username: `1030846920597454929.d0046ffd`
    - Password: (from credentials)
 
-2. **Upload files**:
+2. **Upload files directly to `/home/container`**:
    ```
-   /bot/
+   /home/container/
    ├── *.py (all Python files)
    ├── requirements.txt
    ├── .env (create on server)
    ├── README.md
    ├── LICENSE
-   └── docs/
-       ├── AUTO_TRADING_GUIDE.md
-       ├── MTF_OPTIMIZATION_GUIDE.md
-       ├── WIN_RATE_ANALYSIS.md
-       └── ...
+   ├── *.md (all documentation)
+   └── trading_data/ (create for database)
    ```
 
 3. **Create directories**:
-   - `/bot/trading_data/` (for SQLite database)
-   - `/bot/docs/` (for documentation)
+   - `/home/container/trading_data/` (for SQLite database)
 
 ### Option 3: Deploy from GitHub
 
@@ -64,9 +64,8 @@ SSH into bot-hosting.net and clone the repository:
 
 ```bash
 ssh 1030846920597454929.d0046ffd@de1.bot-hosting.net -p 2022
-cd /
-git clone https://github.com/studiocz-dev/athena_v2.git bot
-cd bot
+cd /home/container
+git clone https://github.com/studiocz-dev/athena_v2.git .
 ```
 
 ## ⚙️ Server Setup

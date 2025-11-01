@@ -37,9 +37,8 @@ option batch abort
 option confirm off
 open sftp://${SFTPUser}:${SFTPPassword}@${SFTPHost}:${SFTPPort}/ -hostkey=*
 
-# Create remote directories
-mkdir /bot 2>/dev/null || echo Directory exists
-cd /bot
+# Navigate to container directory
+cd /home/container
 
 # Upload Python files
 lcd "$LocalPath"
@@ -52,18 +51,10 @@ put LICENSE
 put README.md
 
 # Upload documentation
-mkdir /bot/docs 2>/dev/null || echo Directory exists
-cd /bot/docs
-put AUTO_TRADING_GUIDE.md
-put MTF_OPTIMIZATION_GUIDE.md
-put WIN_RATE_ANALYSIS.md
-put DEPLOYMENT_STATUS.md
-put QUICKSTART.md
-put CONFIGURATION.md
+put *.md
 
 # Create trading_data directory (empty, for database)
-cd /bot
-mkdir /bot/trading_data 2>/dev/null || echo Directory exists
+mkdir trading_data 2>/dev/null || echo Directory exists
 
 # Close connection
 close

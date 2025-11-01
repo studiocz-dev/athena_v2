@@ -22,13 +22,14 @@ jobs:
           server: ${{ secrets.SFTP_HOST }}
           port: ${{ secrets.SFTP_PORT }}
           password: ${{ secrets.SFTP_PASSWORD }}
-          local_path: './*'
-          remote_path: '/bot'
+          local_path: './'
+          remote_path: '/home/container'
           sftp_only: true
           args: '-o ConnectTimeout=5'
+          delete_remote_files: false
           
       - name: Deployment Success
         run: |
           echo "✅ Deployment successful!"
-          echo "📦 Files uploaded to bot-hosting.net:/bot"
+          echo "📦 Files uploaded to bot-hosting.net:/home/container"
           echo "🤖 SSH to server and restart bot if needed"
