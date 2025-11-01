@@ -26,22 +26,22 @@ jobs:
         
       - name: Deploy to bot-hosting.net via SFTP
         run: |
-          # Install sshpass for SFTP authentication
+          # Install lftp for reliable SFTP deployment
           sudo apt-get update
-          sudo apt-get install -y sshpass
+          sudo apt-get install -y lftp
           
-          # Create SFTP batch script
-          cat > sftp_commands.txt << 'EOF'
+          # Deploy using lftp with SFTP protocol
+          lftp -c "
+          set sftp:auto-confirm yes
+          set ssl:verify-certificate no
+          open -u ${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }} sftp://${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_PORT }}
           cd /home/container
-          put -r *.py
+          mput *.py
           put requirements.txt
           put .env.example
           put LICENSE
           bye
-          EOF
-          
-          # Execute SFTP with batch commands
-          sshpass -p "${{ secrets.SFTP_PASSWORD }}" sftp -o StrictHostKeyChecking=no -o Port=${{ secrets.SFTP_PORT }} -b sftp_commands.txt ${{ secrets.SFTP_USERNAME }}@${{ secrets.SFTP_HOST }}
+          "
           
           echo "✅ Deployment successful!"
           
