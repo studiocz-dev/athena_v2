@@ -1,0 +1,34 @@
+name: Deploy to bot-hosting.net
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:  # Allow manual trigger from GitHub Actions tab
+
+jobs:
+  deploy:
+    name: Deploy via SFTP
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Deploy to bot-hosting.net via SFTP
+        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+        with:
+          username: ${{ secrets.SFTP_USERNAME }}
+          server: ${{ secrets.SFTP_HOST }}
+          port: ${{ secrets.SFTP_PORT }}
+          password: ${{ secrets.SFTP_PASSWORD }}
+          local_path: './*'
+          remote_path: '/bot'
+          sftp_only: true
+          args: '-o ConnectTimeout=5'
+          
+      - name: Deployment Success
+        run: |
+          echo "✅ Deployment successful!"
+          echo "📦 Files uploaded to bot-hosting.net:/bot"
+          echo "🤖 SSH to server and restart bot if needed"
