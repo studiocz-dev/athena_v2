@@ -29,12 +29,28 @@ class BinanceFuturesClient:
         self.api_secret = api_secret
         self.testnet = testnet
         
-        # Initialize client
+        # Initialize client with time synchronization
         if testnet:
             self.client = Client(api_key, api_secret, testnet=True)
+            # Get server time and sync
+            try:
+                server_time = self.client.get_server_time()
+                import time
+                time_offset = server_time['serverTime'] - int(time.time() * 1000)
+                self.client.timestamp_offset = time_offset
+            except:
+                pass
             log.info("Connected to Binance Futures TESTNET")
         else:
             self.client = Client(api_key, api_secret)
+            # Get server time and sync
+            try:
+                server_time = self.client.get_server_time()
+                import time
+                time_offset = server_time['serverTime'] - int(time.time() * 1000)
+                self.client.timestamp_offset = time_offset
+            except:
+                pass
             log.info("Connected to Binance Futures MAINNET")
     
     def get_account_balance(self) -> Dict:
@@ -69,16 +85,16 @@ class BinanceFuturesClient:
             open_positions = []
             
             for pos in positions:
-                position_amt = float(pos['positionAmt'])
+                position_amt = float(pos.get('positionAmt', 0))
                 if position_amt != 0:
                     open_positions.append({
                         'symbol': pos['symbol'],
                         'position_amount': position_amt,
-                        'entry_price': float(pos['entryPrice']),
-                        'mark_price': float(pos['markPrice']),
-                        'unrealized_pnl': float(pos['unRealizedProfit']),
-                        'leverage': int(pos['leverage']),
-                        'liquidation_price': float(pos['liquidationPrice']) if pos['liquidationPrice'] else 0,
+                        'entry_price': float(pos.get('entryPrice', 0)),
+                        'mark_price': float(pos.get('markPrice', 0)),
+                        'unrealized_pnl': float(pos.get('unRealizedProfit', 0)),
+                        'leverage': int(pos.get('leverage', 1)),
+                        'liquidation_price': float(pos.get('liquidationPrice', 0)) if pos.get('liquidationPrice') else 0,
                         'side': 'LONG' if position_amt > 0 else 'SHORT'
                     })
             

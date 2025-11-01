@@ -39,7 +39,9 @@
 ### 🎯 Core Features
 - **Real-time Signal Generation**: Analyze Binance Futures markets with 7+ technical strategies
 - **Discord Integration**: Modern slash commands with beautiful embeds
-- **Multi-Symbol Scanning**: Scan multiple symbols simultaneously for opportunities
+- **14-Symbol Watchlist**: Expanded coverage across majors, large-caps, and L2 coins
+- **ATR Volatility Filter**: Smart filtering to skip ranging markets and focus on trending opportunities
+- **Multi-Timeframe Analysis**: MTF confirmation across 15m, 1h, and 4h timeframes
 - **Automatic Monitoring**: Background task to send signals to designated channel
 - **Account Management**: Check balance, positions, and P&L directly from Discord
 - **Risk Management**: Automatic stop-loss and take-profit calculations

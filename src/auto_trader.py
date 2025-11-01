@@ -295,13 +295,22 @@ class AutomatedTradingBot(commands.Bot):
         
         self.tracker = PerformanceTracker()
         
-        # Watchlist - best performing coins
-        self.watchlist = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT']
+        # Expanded watchlist - 14 symbols for better opportunities
+        self.watchlist = [
+            'BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT',  # Major coins
+            'ADAUSDT', 'AVAXUSDT', 'MATICUSDT', 'DOTUSDT',  # Large caps
+            'LINKUSDT', 'ATOMUSDT', 'NEARUSDT', 'APTUSDT',  # Mid caps
+            'ARBUSDT', 'OPUSDT'  # L2 coins
+        ]
         
         # Settings
         self.min_signal_stars = 3  # Only trade 3+ star signals
         self.position_size_usdt = 100  # $100 per trade
         self.max_positions = 3  # Max 3 concurrent positions
+        
+        # Volatility filter settings
+        self.use_volatility_filter = True  # Enable ATR-based filtering
+        self.min_atr_percent = 2.0  # Minimum 2% ATR to consider trading
         
         # Discord channel IDs
         self.signals_channel_id = 1423658108286275717  # Signals channel
@@ -355,6 +364,43 @@ class AutomatedTradingBot(commands.Bot):
         logger.info("\n🚀 Bot is now running and monitoring markets!")
         logger.info("=" * 60)
     
+    def check_volatility(self, symbol: str) -> tuple[bool, float]:
+        """
+        Check if symbol has sufficient volatility for trading
+        Returns: (is_volatile_enough, atr_percent)
+        """
+        try:
+            # Get 1-hour klines for ATR calculation
+            klines = self.client.get_klines(symbol, '1h', limit=14)
+            if not klines or len(klines) < 14:
+                logger.warning(f"⚠️  Insufficient data for {symbol} volatility check")
+                return False, 0.0
+            
+            # Calculate ATR (14-period)
+            high_prices = [float(k[2]) for k in klines]
+            low_prices = [float(k[3]) for k in klines]
+            close_prices = [float(k[4]) for k in klines]
+            
+            true_ranges = []
+            for i in range(1, len(klines)):
+                high_low = high_prices[i] - low_prices[i]
+                high_close = abs(high_prices[i] - close_prices[i-1])
+                low_close = abs(low_prices[i] - close_prices[i-1])
+                true_range = max(high_low, high_close, low_close)
+                true_ranges.append(true_range)
+            
+            atr = sum(true_ranges) / len(true_ranges)
+            current_price = close_prices[-1]
+            atr_percent = (atr / current_price) * 100
+            
+            is_volatile = atr_percent >= self.min_atr_percent
+            
+            return is_volatile, atr_percent
+            
+        except Exception as e:
+            logger.error(f"❌ Error checking volatility for {symbol}: {e}")
+            return False, 0.0
+    
     @tasks.loop(minutes=15)  # Scan every 15 minutes
     async def scan_and_trade(self):
         """Scan watchlist and execute trades on good signals"""
@@ -378,6 +424,17 @@ class AutomatedTradingBot(commands.Bot):
             for i, symbol in enumerate(self.watchlist, 1):
                 try:
                     logger.info(f"\n📌 [{i}/{len(self.watchlist)}] Analyzing {symbol}...")
+                    
+                    # Check volatility first (if filter enabled)
+                    if self.use_volatility_filter:
+                        is_volatile, atr_percent = self.check_volatility(symbol)
+                        logger.info(f"   📊 ATR: {atr_percent:.2f}% (min: {self.min_atr_percent}%)")
+                        
+                        if not is_volatile:
+                            logger.info(f"   ⚠️  Low volatility - skipping (ranging market)")
+                            continue
+                        else:
+                            logger.info(f"   ✅ Sufficient volatility - analyzing signals")
                     
                     # Get signal
                     analysis = self.analyzer.analyze_symbol(symbol)
