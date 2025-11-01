@@ -17,10 +17,9 @@ jobs:
       
       - name: Prepare files for deployment
         run: |
-          # Remove markdown files (documentation)
+          # Remove unnecessary files
+          rm -rf .github docs scripts repos logs __pycache__ .venv trading_data
           rm -f *.md
-          # Remove .github directory
-          rm -rf .github
           echo "Files prepared for deployment"
           ls -la
         
@@ -36,7 +35,8 @@ jobs:
           set ssl:verify-certificate no
           open -u ${{ secrets.SFTP_USERNAME }},${{ secrets.SFTP_PASSWORD }} sftp://${{ secrets.SFTP_HOST }}:${{ secrets.SFTP_PORT }}
           cd /home/container
-          mput *.py
+          mirror -R --only-newer src src
+          put run_bot.py
           put requirements.txt
           put .env.example
           put LICENSE
