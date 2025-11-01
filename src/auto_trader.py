@@ -307,54 +307,101 @@ class AutomatedTradingBot(commands.Bot):
         self.signals_channel_id = 1423658108286275717  # Signals channel
         self.reports_channel_id = 1432616229159571476  # Reports channel
         
-        logger.info("Automated Trading Bot initialized")
+        logger.info("✅ Automated Trading Bot initialized")
     
     async def on_ready(self):
         """Bot ready event"""
-        logger.info(f'Bot logged in as {self.user}')
+        logger.info("\n" + "=" * 60)
+        logger.info("🤖 ATHENA V2 AUTOMATED TRADING BOT")
+        logger.info("=" * 60)
+        logger.info(f"✅ Bot logged in as: {self.user}")
+        logger.info(f"📊 Watchlist: {', '.join(self.watchlist)}")
+        logger.info(f"⭐ Min Signal Stars: {self.min_signal_stars}")
+        logger.info(f"💰 Position Size: ${self.position_size_usdt} per trade")
+        logger.info(f"📈 Max Positions: {self.max_positions}")
+        logger.info(f"⏰ Scan Frequency: Every 15 minutes")
+        logger.info(f"🎯 Position Check: Every 5 minutes")
+        logger.info(f"📊 Daily Report: Every 24 hours")
+        
+        # Check channels
+        signals_channel = self.get_channel(self.signals_channel_id)
+        reports_channel = self.get_channel(self.reports_channel_id)
+        
+        if signals_channel:
+            logger.info(f"📢 Signals Channel: #{signals_channel.name}")
+        else:
+            logger.warning(f"⚠️  Signals channel {self.signals_channel_id} not found!")
+            
+        if reports_channel:
+            logger.info(f"📊 Reports Channel: #{reports_channel.name}")
+        else:
+            logger.warning(f"⚠️  Reports channel {self.reports_channel_id} not found!")
+        
+        logger.info("\n🔄 Starting background tasks...")
         
         # Start background tasks
         if not self.scan_and_trade.is_running():
             self.scan_and_trade.start()
+            logger.info("✅ Scan & Trade task started (15 min interval)")
         
         if not self.check_positions.is_running():
             self.check_positions.start()
+            logger.info("✅ Position Check task started (5 min interval)")
         
         if not self.send_daily_report.is_running():
             self.send_daily_report.start()
+            logger.info("✅ Daily Report task started (24 hour interval)")
         
-        logger.info("Background tasks started")
+        logger.info("\n🚀 Bot is now running and monitoring markets!")
+        logger.info("=" * 60)
     
     @tasks.loop(minutes=15)  # Scan every 15 minutes
     async def scan_and_trade(self):
         """Scan watchlist and execute trades on good signals"""
         try:
-            logger.info("Scanning watchlist for signals...")
+            logger.info("=" * 60)
+            logger.info("🔍 SCANNING WATCHLIST FOR TRADING SIGNALS")
+            logger.info(f"⏰ Scan Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+            logger.info(f"📊 Symbols: {', '.join(self.watchlist)}")
             
             # Check if we have room for more positions
             open_trades = self.tracker.get_open_trades()
+            logger.info(f"📈 Open Positions: {len(open_trades)}/{self.max_positions}")
+            
             if len(open_trades) >= self.max_positions:
-                logger.info(f"Max positions reached ({self.max_positions}), skipping scan")
+                logger.warning(f"⚠️  Max positions reached ({self.max_positions}), skipping scan")
+                logger.info("=" * 60)
                 return
             
             # Scan all symbols
-            for symbol in self.watchlist:
+            signals_found = 0
+            for i, symbol in enumerate(self.watchlist, 1):
                 try:
+                    logger.info(f"\n📌 [{i}/{len(self.watchlist)}] Analyzing {symbol}...")
+                    
                     # Get signal
                     analysis = self.analyzer.analyze_symbol(symbol)
                     
                     if 'error' in analysis:
+                        logger.error(f"❌ Error in {symbol}: {analysis['error']}")
                         continue
                     
                     signal = analysis['signal']
                     stars = analysis.get('stars', 0)
+                    current_price = analysis.get('current_price', 0)
+                    
+                    logger.info(f"   Signal: {signal} {'⭐' * stars} ({stars} stars)")
+                    logger.info(f"   Price: ${current_price:.4f}")
                     
                     # Check if signal meets criteria
                     if signal in ['BUY', 'SELL'] and stars >= self.min_signal_stars:
                         # Check if already have position in this symbol
                         if any(t['symbol'] == symbol for t in open_trades):
-                            logger.info(f"Already have open position in {symbol}, skipping")
+                            logger.info(f"   ℹ️  Already have open position in {symbol}, skipping")
                             continue
+                        
+                        signals_found += 1
+                        logger.info(f"   ✅ VALID SIGNAL! Executing {signal} trade...")
                         
                         # Execute trade
                         await self.execute_trade(analysis)
@@ -362,11 +409,18 @@ class AutomatedTradingBot(commands.Bot):
                         # Send signal to Discord
                         await self.send_signal_notification(analysis)
                         
+                    else:
+                        if signal == 'HOLD':
+                            logger.info(f"   ⏸️  No trade signal (HOLD)")
+                        else:
+                            logger.info(f"   ⚠️  Signal below threshold ({stars} < {self.min_signal_stars} stars)")
+                        
                 except Exception as e:
-                    logger.error(f"Error analyzing {symbol}: {e}")
+                    logger.error(f"❌ Error analyzing {symbol}: {str(e)}", exc_info=True)
                     continue
             
-            logger.info("Scan complete")
+            logger.info(f"\n✅ Scan complete: {signals_found} valid signal(s) found")
+            logger.info("=" * 60)
             
         except Exception as e:
             logger.error(f"Error in scan_and_trade: {e}")
@@ -378,21 +432,42 @@ class AutomatedTradingBot(commands.Bot):
             open_trades = self.tracker.get_open_trades()
             
             if not open_trades:
+                logger.debug("🔍 Position check: No open positions")
                 return
             
-            logger.info(f"Checking {len(open_trades)} open positions...")
+            logger.info("\n" + "=" * 60)
+            logger.info(f"🎯 CHECKING POSITIONS - {len(open_trades)} open")
+            logger.info(f"⏰ Check Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
-            for trade in open_trades:
+            for i, trade in enumerate(open_trades, 1):
                 try:
                     symbol = trade['symbol']
+                    entry_price = trade['entry_price']
+                    stop_loss = trade['stop_loss']
+                    take_profit = trade['take_profit']
+                    signal = trade['signal']
+                    
+                    logger.info(f"\n📊 [{i}/{len(open_trades)}] {symbol} ({signal})")
+                    logger.info(f"   Entry: ${entry_price:.4f}")
                     
                     # Get current price
                     ticker = self.client.client.futures_symbol_ticker(symbol=symbol)
                     current_price = float(ticker['price'])
                     
-                    stop_loss = trade['stop_loss']
-                    take_profit = trade['take_profit']
-                    signal = trade['signal']
+                    # Calculate P&L percentage
+                    if signal == 'BUY':
+                        pnl_pct = ((current_price - entry_price) / entry_price) * 100
+                        tp_distance = ((take_profit - current_price) / current_price) * 100
+                        sl_distance = ((current_price - stop_loss) / current_price) * 100
+                    else:  # SELL
+                        pnl_pct = ((entry_price - current_price) / entry_price) * 100
+                        tp_distance = ((current_price - take_profit) / current_price) * 100
+                        sl_distance = ((stop_loss - current_price) / current_price) * 100
+                    
+                    pnl_emoji = "🟢" if pnl_pct >= 0 else "🔴"
+                    logger.info(f"   Current: ${current_price:.4f} {pnl_emoji} ({pnl_pct:+.2f}%)")
+                    logger.info(f"   TP: ${take_profit:.4f} ({tp_distance:.2f}% away)")
+                    logger.info(f"   SL: ${stop_loss:.4f} ({sl_distance:.2f}% away)")
                     
                     # Check if TP or SL hit
                     hit_tp = False
@@ -411,24 +486,34 @@ class AutomatedTradingBot(commands.Bot):
                     
                     if hit_tp or hit_sl:
                         exit_reason = 'TP' if hit_tp else 'SL'
+                        emoji = "🎯" if hit_tp else "🛑"
+                        logger.info(f"   {emoji} {exit_reason} HIT! Closing position...")
+                        
                         result = self.tracker.close_trade(trade['id'], current_price, exit_reason)
                         
                         if result:
                             await self.send_exit_notification(result)
-                            logger.info(f"Position closed: {symbol} at {exit_reason}")
+                            logger.info(f"   ✅ Position closed: P&L = ${result['pnl']:+.2f} ({result['pnl_percent']:+.2f}%)")
+                    else:
+                        logger.info(f"   ⏳ Position still open")
                 
                 except Exception as e:
-                    logger.error(f"Error checking position {trade['symbol']}: {e}")
+                    logger.error(f"❌ Error checking position {trade['symbol']}: {str(e)}", exc_info=True)
                     continue
             
+            logger.info("\n✅ Position check complete")
+            logger.info("=" * 60)
+            
         except Exception as e:
-            logger.error(f"Error in check_positions: {e}")
+            logger.error(f"❌ Error in check_positions: {str(e)}", exc_info=True)
     
     @tasks.loop(hours=24)  # Send report every 24 hours
     async def send_daily_report(self):
         """Send daily performance report to Discord"""
         try:
-            logger.info("Generating daily performance report...")
+            logger.info("\n" + "=" * 60)
+            logger.info("📊 GENERATING DAILY PERFORMANCE REPORT")
+            logger.info(f"⏰ Report Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
             
             # Get today's performance
             today_stats = self.tracker.get_daily_performance()
@@ -513,13 +598,36 @@ class AutomatedTradingBot(commands.Bot):
             current_price = analysis['current_price']
             stop_loss = analysis['stop_loss']
             take_profit = analysis['take_profit']
+            stars = analysis.get('stars', 0)
+            
+            logger.info("\n" + "-" * 60)
+            logger.info(f"🎯 EXECUTING TRADE")
+            logger.info(f"Symbol: {symbol}")
+            logger.info(f"Signal: {signal} {'⭐' * stars}")
+            logger.info(f"Entry Price: ${current_price:.4f}")
             
             # Calculate quantity
             quantity = self.position_size_usdt / current_price
             quantity = round(quantity, 3)  # Round to 3 decimals
+            position_value = quantity * current_price
+            
+            logger.info(f"Position Size: {quantity} {symbol} (${position_value:.2f})")
+            logger.info(f"Stop Loss: ${stop_loss:.4f} ({((stop_loss - current_price) / current_price * 100):+.2f}%)")
+            logger.info(f"Take Profit: ${take_profit:.4f} ({((take_profit - current_price) / current_price * 100):+.2f}%)")
+            
+            # Calculate risk/reward
+            if signal == 'BUY':
+                risk = current_price - stop_loss
+                reward = take_profit - current_price
+            else:  # SELL
+                risk = stop_loss - current_price
+                reward = current_price - take_profit
+            
+            risk_reward = reward / risk if risk > 0 else 0
+            logger.info(f"Risk/Reward: {risk_reward:.2f}")
             
             # Place order on testnet
-            logger.info(f"Placing {signal} order: {symbol} @ {current_price}, Qty: {quantity}")
+            logger.info(f"\n📤 Placing {signal} order on TESTNET...")
             
             # Note: For testnet, we'll simulate the order
             # In live trading, you'd use: self.client.place_market_order(symbol, signal, quantity)
@@ -534,14 +642,16 @@ class AutomatedTradingBot(commands.Bot):
                 'stop_loss': stop_loss,
                 'take_profit': take_profit,
                 'signal_strength': analysis.get('signal_strength', 'UNKNOWN'),
-                'stars': analysis.get('stars', 0)
+                'stars': stars
             }
             
             trade_id = self.tracker.add_trade(trade_data)
-            logger.info(f"Trade #{trade_id} executed successfully")
+            logger.info(f"✅ Trade #{trade_id} executed successfully!")
+            logger.info(f"💾 Trade saved to database")
+            logger.info("-" * 60)
             
         except Exception as e:
-            logger.error(f"Error executing trade: {e}")
+            logger.error(f"❌ Error executing trade: {str(e)}", exc_info=True)
     
     async def send_signal_notification(self, analysis: Dict):
         """Send signal notification to Discord"""
@@ -629,7 +739,17 @@ class AutomatedTradingBot(commands.Bot):
 
 def main():
     """Run the automated trading bot"""
-    bot = AutomatedTradingBot()
+    logger.info("\n" + "🚀" * 30)
+    logger.info("ATHENA V2 - AUTOMATED TRADING BOT")
+    logger.info("Starting initialization...")
+    logger.info("🚀" * 30 + "\n")
+    
+    try:
+        bot = AutomatedTradingBot()
+        logger.info("✅ Bot instance created successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to create bot instance: {str(e)}", exc_info=True)
+        return
     
     @bot.command()
     async def set_signals_channel(ctx):
@@ -666,11 +786,43 @@ def main():
     @bot.command()
     async def report(ctx):
         """Get immediate performance report"""
+        logger.info(f"📊 Manual report requested by {ctx.author}")
         await bot.send_daily_report()
         await ctx.send("✅ Report generated!")
     
+    @bot.command()
+    async def stop(ctx):
+        """Emergency stop - close all positions"""
+        logger.warning(f"🛑 EMERGENCY STOP requested by {ctx.author}")
+        open_trades = bot.tracker.get_open_trades()
+        
+        if not open_trades:
+            await ctx.send("ℹ️ No open positions to close")
+            return
+        
+        closed = 0
+        for trade in open_trades:
+            try:
+                # Get current price and close
+                ticker = bot.client.client.futures_symbol_ticker(symbol=trade['symbol'])
+                current_price = float(ticker['price'])
+                bot.tracker.close_trade(trade['id'], current_price, 'MANUAL_STOP')
+                closed += 1
+                logger.info(f"🛑 Closed {trade['symbol']} at ${current_price:.4f}")
+            except Exception as e:
+                logger.error(f"Error closing {trade['symbol']}: {e}")
+        
+        await ctx.send(f"🛑 Emergency stop: Closed {closed} position(s)")
+        logger.warning(f"🛑 Emergency stop complete: {closed} positions closed")
+    
     # Run bot
-    bot.run(config.DISCORD_BOT_TOKEN)
+    logger.info("\n🔌 Connecting to Discord...")
+    try:
+        bot.run(config.DISCORD_BOT_TOKEN)
+    except KeyboardInterrupt:
+        logger.info("\n\n⚠️  Keyboard interrupt received - shutting down gracefully...")
+    except Exception as e:
+        logger.error(f"\n\n❌ Bot crashed: {str(e)}", exc_info=True)
 
 
 if __name__ == "__main__":
