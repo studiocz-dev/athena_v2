@@ -131,17 +131,18 @@ python3 auto_trader.py  # Restart with new code
 ### What Gets Deployed
 
 ✅ **Uploaded to bot-hosting.net**:
-- All `.py` files
-- `requirements.txt`
-- Documentation (`.md` files)
-- Configuration templates (`.env.example`)
-- Scripts
+- All `.py` files (bot code)
+- `requirements.txt` (dependencies)
+- `.env.example` (configuration template)
+- `LICENSE` file
 
-❌ **NOT uploaded** (protected by `.gitignore`):
-- `.env` file (your API keys)
+❌ **NOT uploaded**:
+- `.env` file (your API keys - protected by .gitignore)
 - `*.db` files (trading database)
+- `*.md` files (documentation - keep on GitHub only)
 - `trading_data/` directory
 - `__pycache__/`
+- `.github/` directory
 - Logs
 
 ### After Deployment
