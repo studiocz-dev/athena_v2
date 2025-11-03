@@ -12,6 +12,19 @@ DISCORD_BOT_TOKEN = os.getenv('DISCORD_BOT_TOKEN')
 DISCORD_GUILD_ID = os.getenv('DISCORD_GUILD_ID')
 SIGNAL_CHANNEL_ID = os.getenv('SIGNAL_CHANNEL_ID')
 
+# Exchange Selection
+EXCHANGE = os.getenv('EXCHANGE', 'gate').lower()  # gate, bybit, or binance
+
+# Gate.io Configuration
+GATE_API_KEY = os.getenv('GATE_API_KEY')
+GATE_API_SECRET = os.getenv('GATE_API_SECRET')
+GATE_TESTNET = os.getenv('GATE_TESTNET', 'True').lower() == 'true'
+
+# Bybit Configuration
+BYBIT_API_KEY = os.getenv('BYBIT_API_KEY')
+BYBIT_API_SECRET = os.getenv('BYBIT_API_SECRET')
+BYBIT_DEMO = os.getenv('BYBIT_DEMO', 'False').lower() == 'true'
+
 # Binance Configuration
 BINANCE_API_KEY = os.getenv('BINANCE_API_KEY')
 BINANCE_API_SECRET = os.getenv('BINANCE_API_SECRET')

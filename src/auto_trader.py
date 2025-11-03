@@ -310,7 +310,7 @@ class AutomatedTradingBot(commands.Bot):
         
         # Volatility filter settings
         self.use_volatility_filter = True  # Enable ATR-based filtering
-        self.min_atr_percent = 2.0  # Minimum 2% ATR to consider trading
+        self.min_atr_percent = 1.25  # Minimum 1.25% ATR to consider trading (lowered for more signals)
         
         # Discord channel IDs
         self.signals_channel_id = 1423658108286275717  # Signals channel
